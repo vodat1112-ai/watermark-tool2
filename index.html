@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Watermark">
+<meta name="theme-color" content="#15171c">
+<title>Tool chèn watermark ảnh</title>
+<style>
+  :root{
+    --bg:#15171c;
+    --panel:#1d2027;
+    --panel-border:#2b2f3a;
+    --accent:#5ab0ff;
+    --text:#e8eaf0;
+    --muted:#8b90a0;
+    --input-bg:#111317;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+  }
+  .wrap{
+    display:flex;
+    flex-wrap:wrap;
+    gap:24px;
+    padding:28px;
+    max-width:1280px;
+    margin:0 auto;
+  }
+  h1{
+    font-size:20px;
+    margin:0 0 4px;
+    letter-spacing:.2px;
+  }
+  .sub{
+    color:var(--muted);
+    font-size:13px;
+    margin:0 0 20px;
+  }
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--panel-border);
+    border-radius:14px;
+    padding:20px;
+  }
+  .controls{
+    flex:1 1 320px;
+    min-width:300px;
+    max-width:380px;
+  }
+  .preview{
+    flex:2 1 480px;
+    min-width:300px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  label{
+    display:block;
+    font-size:12px;
+    color:var(--muted);
+    margin:14px 0 6px;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+  }
+  label:first-of-type{margin-top:0;}
+  input[type=text], input[type=number], input[type=datetime-local], textarea{
+    width:100%;
+    padding:9px 10px;
+    border-radius:8px;
+    border:1px solid var(--panel-border);
+    background:var(--input-bg);
+    color:var(--text);
+    font-size:14px;
+    font-family:inherit;
+    resize:vertical;
+  }
+  input[type=file]{
+    width:100%;
+    font-size:13px;
+    color:var(--muted);
+  }
+  .row2{display:flex; gap:10px;}
+  .row2 > div{flex:1;}
+  .file-drop{
+    border:1.5px dashed var(--panel-border);
+    border-radius:10px;
+    padding:16px;
+    text-align:center;
+    font-size:13px;
+    color:var(--muted);
+    cursor:pointer;
+    transition:border-color .15s;
+  }
+  .file-drop:hover{border-color:var(--accent);}
+  button{
+    width:100%;
+    margin-top:18px;
+    padding:11px;
+    border:none;
+    border-radius:9px;
+    background:var(--accent);
+    color:#08131f;
+    font-weight:600;
+    font-size:14px;
+    cursor:pointer;
+  }
+  button:disabled{
+    background:#33384a;
+    color:var(--muted);
+    cursor:not-allowed;
+  }
+  button.secondary{
+    background:transparent;
+    border:1px solid var(--panel-border);
+    color:var(--text);
+    margin-top:8px;
+  }
+  canvas{
+    max-width:100%;
+    border-radius:10px;
+    display:block;
+  }
+  .placeholder{
+    color:var(--muted);
+    font-size:14px;
+    text-align:center;
+    padding:60px 20px;
+    border:1px dashed var(--panel-border);
+    border-radius:10px;
+    width:100%;
+  }
+  .slider-row{display:flex; align-items:center; gap:10px;}
+  .slider-row input[type=range]{flex:1;}
+  .slider-row span{font-size:12px; color:var(--muted); width:40px; text-align:right;}
+
+  @media (max-width: 640px){
+    .wrap{
+      padding:14px;
+      gap:14px;
+    }
+    .panel{
+      padding:16px;
+      border-radius:12px;
+    }
+    .controls{
+      max-width:none;
+      order:1;
+    }
+    .preview{
+      order:2;
+      padding:8px;
+    }
+    h1{font-size:18px;}
+    button{padding:13px; font-size:15px;}
+    textarea, input[type=text], input[type=number]{font-size:16px;} /* tránh iOS tự zoom khi focus */
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="panel controls">
+    <h1>Chèn watermark lên ảnh</h1>
+    <p class="sub">Điền thông tin, xem trước trực tiếp, rồi tải ảnh xuống.</p>
+
+    <label>Ảnh gốc</label>
+    <div class="file-drop" id="dropZone">Chọn hoặc kéo thả ảnh vào đây</div>
+    <input type="file" id="fileInput" accept="image/*" style="display:none">
+
+    <label>Nội dung watermark (mỗi dòng 1 ý)</label>
+    <textarea id="watermarkText" rows="6" placeholder="Mỗi dòng sẽ thành 1 dòng chữ trên ảnh">18 Jun 2026 at 01:51:00
++10.019165,+105.630380
+Thành Phố Cần Thơ
+X. Phong Điền
+CTO0589-11</textarea>
+
+    <label>Cỡ chữ</label>
+    <div class="slider-row">
+      <input type="range" id="fontScale" min="0.02" max="0.06" step="0.002" value="0.038">
+      <span id="fontScaleVal"></span>
+    </div>
+
+    <label>Độ giãn dòng</label>
+    <div class="slider-row">
+      <input type="range" id="lineSpacing" min="1" max="2" step="0.05" value="1.22">
+      <span id="lineSpacingVal"></span>
+    </div>
+
+    <button id="downloadBtn" disabled>Tải ảnh xuống</button>
+    <button class="secondary" id="resetBtn">Xoá ảnh</button>
+  </div>
+
+  <div class="panel preview">
+    <div id="placeholder" class="placeholder">Chưa có ảnh — hãy chọn một ảnh ở bên trái</div>
+    <canvas id="canvas" style="display:none"></canvas>
+  </div>
+
+</div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const dropZone = document.getElementById('dropZone');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const placeholder = document.getElementById('placeholder');
+const downloadBtn = document.getElementById('downloadBtn');
+const resetBtn = document.getElementById('resetBtn');
+const fontScale = document.getElementById('fontScale');
+const fontScaleVal = document.getElementById('fontScaleVal');
+
+let img = null;
+
+const watermarkText = document.getElementById('watermarkText');
+watermarkText.addEventListener('input', render);
+fontScale.addEventListener('input', () => { fontScaleVal.textContent = fontScale.value; render(); });
+fontScaleVal.textContent = fontScale.value;
+
+const lineSpacing = document.getElementById('lineSpacing');
+const lineSpacingVal = document.getElementById('lineSpacingVal');
+lineSpacing.addEventListener('input', () => { lineSpacingVal.textContent = lineSpacing.value; render(); });
+lineSpacingVal.textContent = lineSpacing.value;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
+dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = ''; });
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.style.borderColor = '';
+  if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', e => {
+  if (e.target.files[0]) loadImage(e.target.files[0]);
+});
+
+function loadImage(file){
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const image = new Image();
+    image.onload = () => {
+      img = image;
+      canvas.width = image.naturalWidth;
+      canvas.height = image.naturalHeight;
+      placeholder.style.display = 'none';
+      canvas.style.display = 'block';
+      downloadBtn.disabled = false;
+      render();
+    };
+    image.src = ev.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+resetBtn.addEventListener('click', () => {
+  img = null;
+  fileInput.value = '';
+  canvas.style.display = 'none';
+  placeholder.style.display = 'block';
+  downloadBtn.disabled = true;
+});
+
+function formatDateTime(value){
+  if (!value) return '';
+  const d = new Date(value);
+  if (isNaN(d)) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const day = d.getDate();
+  const month = months[d.getMonth()];
+  const year = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const mm = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'0');
+  return `${day} ${month} ${year} at ${hh}:${mm}:${ss}`;
+}
+
+function formatCoord(value){
+  const n = parseFloat(value);
+  if (isNaN(n)) return '';
+  const sign = n >= 0 ? '+' : '';
+  return sign + n.toFixed(6);
+}
+
+function render(){
+  if (!img) return;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+  const lines = watermarkText.value
+    .split('\n')
+    .map(l => l.trim())
+    .filter(l => l.length > 0);
+
+  if (lines.length === 0) return;
+
+  const fontSize = canvas.width * parseFloat(fontScale.value);
+  const lineHeight = fontSize * parseFloat(lineSpacing.value);
+  const marginRight = fontSize * 0.45;
+  const marginTop = fontSize * 0.75;
+
+  ctx.font = `400 ${fontSize}px "Helvetica Neue", Arial, sans-serif`;
+  ctx.textAlign = 'right';
+  ctx.textBaseline = 'top';
+  ctx.lineJoin = 'round';
+
+  lines.forEach((line, i) => {
+    const x = canvas.width - marginRight;
+    const y = marginTop + i * lineHeight;
+
+    // soft drop shadow only, carries contrast without thickening the strokes
+    ctx.shadowColor = 'rgba(0,0,0,0.55)';
+    ctx.shadowBlur = fontSize * 0.1;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = fontSize * 0.025;
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(line, x, y);
+
+    ctx.shadowColor = 'transparent';
+  });
+}
+
+downloadBtn.addEventListener('click', () => {
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    const file = new File([blob], 'watermarked.jpg', { type: 'image/jpeg' });
+
+    // Trên điện thoại: ưu tiên Share Sheet để lưu thẳng vào Album ảnh
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file] });
+        return;
+      } catch (err) {
+        // người dùng bấm hủy ở share sheet, hoặc lỗi -> rơi xuống fallback bên dưới
+      }
+    }
+
+    // Fallback: thử link download (hoạt động tốt trên desktop & Android)
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'watermarked.jpg';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    // Fallback cuối: mở ảnh ở tab mới để người dùng tự nhấn giữ > Lưu ảnh
+    setTimeout(() => {
+      window.open(url, '_blank');
+      URL.revokeObjectURL(url);
+    }, 300);
+  }, 'image/jpeg', 0.92);
+});
+</script>
+</body>
+</html>
