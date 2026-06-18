@@ -196,6 +196,18 @@ CTO0589-11</textarea>
       <span id="lineSpacingVal"></span>
     </div>
 
+    <label>Vị trí ngang (từ mép phải)</label>
+    <div class="slider-row">
+      <input type="range" id="marginLeft" min="0" max="0.5" step="0.01" value="0">
+      <span id="marginLeftVal"></span>
+    </div>
+
+    <label>Vị trí dọc (từ mép trên)</label>
+    <div class="slider-row">
+      <input type="range" id="marginTop" min="0" max="0.9" step="0.01" value="0">
+      <span id="marginTopVal"></span>
+    </div>
+
     <button id="downloadBtn" disabled>Tải ảnh xuống</button>
     <button class="secondary" id="resetBtn">Xoá ảnh</button>
   </div>
@@ -229,6 +241,16 @@ const lineSpacing = document.getElementById('lineSpacing');
 const lineSpacingVal = document.getElementById('lineSpacingVal');
 lineSpacing.addEventListener('input', () => { lineSpacingVal.textContent = lineSpacing.value; render(); });
 lineSpacingVal.textContent = lineSpacing.value;
+
+const marginLeftSlider = document.getElementById('marginLeft');
+const marginLeftVal = document.getElementById('marginLeftVal');
+marginLeftSlider.addEventListener('input', () => { marginLeftVal.textContent = Math.round(parseFloat(marginLeftSlider.value)*100)+'%'; render(); });
+marginLeftVal.textContent = Math.round(parseFloat(marginLeftSlider.value)*100)+'%';
+
+const marginTopSlider = document.getElementById('marginTop');
+const marginTopVal = document.getElementById('marginTopVal');
+marginTopSlider.addEventListener('input', () => { marginTopVal.textContent = Math.round(parseFloat(marginTopSlider.value)*100)+'%'; render(); });
+marginTopVal.textContent = Math.round(parseFloat(marginTopSlider.value)*100)+'%';
 
 dropZone.addEventListener('click', () => fileInput.click());
 dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.style.borderColor = 'var(--accent)'; });
@@ -303,8 +325,12 @@ function render(){
 
   const fontSize = canvas.width * parseFloat(fontScale.value);
   const lineHeight = fontSize * parseFloat(lineSpacing.value);
-  const marginRight = fontSize * 0.45;
-  const marginTop = fontSize * 0.75;
+
+  const mrRatio = parseFloat(marginLeftSlider.value);
+  const mtRatio = parseFloat(marginTopSlider.value);
+
+  const marginX = canvas.width * (1 - mrRatio) - fontSize * 0.45;
+  const marginTop = canvas.height * mtRatio + fontSize * 0.75;
 
   ctx.font = `400 ${fontSize}px "Helvetica Neue", Arial, sans-serif`;
   ctx.textAlign = 'right';
@@ -312,7 +338,7 @@ function render(){
   ctx.lineJoin = 'round';
 
   lines.forEach((line, i) => {
-    const x = canvas.width - marginRight;
+    const x = marginX;
     const y = marginTop + i * lineHeight;
 
     // soft drop shadow only, carries contrast without thickening the strokes
